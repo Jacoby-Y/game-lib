@@ -2,20 +2,22 @@
 
 const main_func = ()=>{
     ctx.clearRect(0,0, canvas.width, canvas.height);
-    for (let i = 0; i < em.parts.length; i++) {
-        const p = em.parts[i];
-        const angle = get_angle({x: p.pos.x, y: p.pos.y}, mouse.pos);
-        const dist = distance2({x: p.pos.x, y: p.pos.y}, mouse.pos);
-        p.vect.x += Math.cos(angle)*100/dist;
-        p.vect.y += Math.sin(angle)*100/dist;
+    if (mouse.on_canvas) {
+        for (let i = 0; i < em.parts.length; i++) {
+            const p = em.parts[i];
+            const angle = get_angle({x: p.pos.x, y: p.pos.y}, mouse.pos);
+            const dist = distance2({x: p.pos.x, y: p.pos.y}, mouse.pos);
+            p.vect.x += Math.cos(angle)*100/dist;
+            p.vect.y += Math.sin(angle)*100/dist;
 
-        if (dist <= 30) {
-            p.destroy = true;
+            if (dist <= 30) {
+                p.destroy = true;
+            }
         }
     }
     em.step();
 
-    draw_text(20, 50, `Points: ${points}`);
+    draw_text(20, 50, `Points: ${points}`, null, "green", "left");
 }
 //#endregion
 
@@ -44,17 +46,16 @@ em.vect_range = [
 //#region Canvas Events
 canvas.onmousedown = (e) => {
     mouse.down = true;
-    const x = e.layerX;
-    const y = e.layerY;
+    const x = e.offsetX;
+    const y = e.offsetY;
     
 }
 canvas.onmouseup = (e) => {
     mouse.down = false;
 }
 canvas.onmousemove = function(e) {
-    const x = e.layerX;
-    const y = e.layerY;
-    mouse.pos = {x: x, y: y};
+    const x = e.offsetX;
+    const y = e.offsetY;
 }
 document.addEventListener("keydown", (e)=>{
     if (e.key == "s") {

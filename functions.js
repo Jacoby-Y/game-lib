@@ -253,11 +253,15 @@ class Vector2 {
         this.x = x;
         this.y = y;
     }
-    direction() {
+    get_dir() {
         return Math.atan2(x,y);
     }
     step(len) {
-        const angle = this.direction()
+        const angle = this.get_dir()
+        this.x += Math.cos(angle)*len;
+        this.y += Math.sin(angle)*len;
+    }
+    step_with_angle(len, angle) {
         this.x += Math.cos(angle)*len;
         this.y += Math.sin(angle)*len;
     }

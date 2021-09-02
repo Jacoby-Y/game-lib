@@ -25,16 +25,13 @@ let last_angle = 0;
 //#region Canvas Events
 canvas.onmousedown = (e) => {
     mouse.down = true;
-    const x = e.layerX;
-    const y = e.layerY;
+    const x = e.offsetX;
+    const y = e.offsetY;
 }
 canvas.onmouseup = (e) => {
     mouse.down = false;
 }
 canvas.onmousemove = function(e) {
-    const x = e.layerX;
-    const y = e.layerY;
-    mouse.pos = {x: x, y: y};
 }
 document.addEventListener("keydown", (e)=>{
     controller_keydown(e.key);

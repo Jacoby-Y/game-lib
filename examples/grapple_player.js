@@ -2,7 +2,7 @@
 
 const main_func = ()=>{
     ctx.clearRect(0,0, canvas.width, canvas.height);
-    
+    draw_circ2(mouse.pos, 5, "blue");
     if (controller.a) 
         player.transform.add_force(-1, 0);
     if (controller.d) 
@@ -58,6 +58,9 @@ const main_func = ()=>{
 
     draw_line2(line_origin, {x: ax, y: ay});
 
+    draw_circ(ax, ay, 5, "black");
+    
+
     player.transform.add_force(Math.cos(angle)*3, Math.sin(angle)*3);
 
 }
@@ -78,16 +81,18 @@ const player = {
 //#region Canvas Events
 canvas.onmousedown = (e) => {
     mouse.down = true;
-    const x = e.layerX;
-    const y = e.layerY;
+    const x = e.offsetX;
+    const y = e.offsetY;
 
 }
 canvas.onmouseup = (e) => {
     mouse.down = false;
+    console.log(e);
 }
 canvas.onmousemove = function(e) {
-    const x = e.layerX;
-    const y = e.layerY;
+    const x = e.offsetX;
+    const y = e.offsetY;
+    
     mouse.pos = {x: x, y: y};
 }
 document.addEventListener("keydown", (e)=>{

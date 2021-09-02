@@ -17,6 +17,7 @@ ctx.scale(scale, scale);
 
 const mouse = {
     down: false,
+    on_canvas: false,
     pos: {
         x: 0,
         y: 0,
@@ -27,4 +28,13 @@ const controller = {
     a: false,
     s: false,
     d: false,
+}
+document.onmousemove = (e)=>{
+    if (e.target == canvas) {
+        mouse.pos.x = e.offsetX;
+        mouse.pos.y = e.offsetY;
+        mouse.on_canvas = true;
+    } else {
+        mouse.on_canvas = false;
+    }
 }
