@@ -137,6 +137,22 @@ const controller_keyup = (key)=>{
             break;
     }
 }
+const get_entity_with_id = (id)=>{
+    for (let i = 0; i < entities.length; i++) {
+        const e = entities[i];
+        if (e.id == id) {
+            return e;
+        }
+    }
+    return null;
+}
+const update_entities = ()=>{
+    for (let i = 0; i < entities.length; i++) {
+        const e = entities[i];
+        if (typeof e.update == "function")
+            e.update(e);
+    }
+}
 class Emitter {
     constructor(tpe=30, direction=1, arc_range=[0,1], origin=new Vector2(100,100), vect_range=[new Vector2(-1,-1), new Vector2(1,1)], speed_range=[1,2], life_span=60, drag=1, on_destroy=()=>{}) {
         /** Array of particles in this emitter ~~
@@ -248,6 +264,28 @@ class Particle {
         draw_circ2(this.pos, 10, ctx.fillStyle);
     }
 }
+
+//> Components
+class Entity {
+    constructor() {
+        entities.push(this);
+    }
+    bind(obj) {
+        if (obj.$ != undefined && typeof obj.$ == "function") {
+            const prop = obj.$();
+            if (prop == "graphic") {
+                obj.vector = this.vector;
+                obj.transform = this.transform;
+            }
+            this[prop] = obj;
+        } else if (typeof obj == "object") {
+            Object.assign(this, obj);
+        }
+        
+        return this;
+    }
+}
+
 class Vector2 {
     constructor(x,y) {
         this.x = x;
@@ -256,40 +294,82 @@ class Vector2 {
     get_dir() {
         return Math.atan2(x,y);
     }
-    step(len) {
-        const angle = this.get_dir()
+    move_to(pos, step) {
+        const angle = get_angle(this, pos);
+        this.x += Math.cos(angle)*step;
+        this.y += Math.sin(angle)*step;
+    }
+    move_with_angle(len, angle) {
+        if (angle == null) return;
         this.x += Math.cos(angle)*len;
         this.y += Math.sin(angle)*len;
-    }
-    step_with_angle(len, angle) {
-        this.x += Math.cos(angle)*len;
-        this.y += Math.sin(angle)*len;
-    }
-}
-class Transform {
-    constructor(x,y, vx,vy, gravity=1, drag=1) {
-        this.x = x;
-        this.y = y;
-        this.vx = vx;
-        this.vy = vy;
-        this.gravity = gravity;
-        this.drag = drag;
     }
     translate(x,y) {
         this.x += x;
         this.y += y;
     }
+    $(){ return "vector" }
+}
+class Transform {
+    constructor(rotation, scale_x, scale_y) {
+        this.rotation = rotation;
+        this.scale_x = scale_x;
+        this.scale_y = scale_y;
+    }
+    rotate(angle) {
+        this.rotation += angle;
+    }
+    scale(x,y) {
+        this.scale_x += x;
+        this.scale_y += y;
+    }
+    $(){ return "transform" }
+}
+class Physics {
+    constructor(vx=0, vy=0, gravity=1, drag=0.95, vector=null) {
+        this.vx = vx;
+        this.vy = vy;
+        this.gravity = gravity;
+        this.drag = drag;
+        this.vector = vector;
+    }
     add_force(x,y) {
         this.vx += x;
         this.vy += y;
+        return this;
     }
-    step_force(do_drag=false, do_gravity=true) {
-        this.x += this.vx;
-        this.y += this.vy;
+    step(do_drag=false, do_gravity=true) {
+        if (this.vector == null) return;
+        this.vector.x += this.vx;
+        this.vector.y += this.vy;
         if (do_gravity) this.vy += this.gravity;
         if (do_drag) {
             this.vx *= this.drag;
             this.vy *= this.drag;
         }
+        return this;
     }
+    $(){ return "physics" }
+}
+class Graphic {
+    constructor(on_draw=(vect, transform)=>{}) {
+        this.vector = null;
+        this.transform = null;
+        this.on_draw = on_draw;
+    }
+    draw(){
+        if (this.vector == null || this.transform == null) return;
+        ctx.setTransform(1, 0, 0, 1, this.vector.x, this.vector.y);
+        ctx.rotate(this.transform.rotation);
+        this.on_draw(this.vector, this.transform);
+    }
+    $(){ return "graphic" }
+}
+class BoxCollider {
+    constructor(w, h) {
+        this.w = w;
+        this.h = h;
+        this.vector = null;
+    }
+    $() { return "box_collider"; }
 }

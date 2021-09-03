@@ -28,6 +28,20 @@ const controller = {
     a: false,
     s: false,
     d: false,
+    angle() {
+        let x = 0;
+        let y = 0;
+        x += (this.a)? -1 : 0;
+        x += (this.d)? 1 : 0;
+        y += (this.w)? -1 : 0;
+        y += (this.s)? 1 : 0;
+
+        if (x != 0 || y != 0) {
+            return Math.atan2(y, x);
+        } else {
+            return null;
+        }
+    }
 }
 document.onmousemove = (e)=>{
     if (e.target == canvas) {
@@ -38,3 +52,4 @@ document.onmousemove = (e)=>{
         mouse.on_canvas = false;
     }
 }
+const entities = [];

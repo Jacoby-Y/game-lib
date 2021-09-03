@@ -11,15 +11,39 @@ const main_func = ()=>{
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.clearRect(0,0, canvas.width, canvas.height);
 
-    var angle = Math.atan2(mouse.pos.y - canvas.width/2, mouse.pos.x - canvas.height/2);
-
-    // draw rotated design
-    drawRotated(canvas.width/2, canvas.height/2, angle);
+    update_entities();
 }
 //#endregion
 
 //#region Constants / Variables
-let last_angle = 0;
+// const player = new Entity({ 
+//     vector: new Vector2(100, 100),
+//     transform: new Transform(0, 1,1),
+//     graphic: new Graphic(this, 
+//     function (vect, trans) {
+//         ctx.fillRect(vect.x, vect.x, 50, 50)
+//     }),
+//     update() {
+//         this.graphic.draw();
+//     }
+// });
+
+const player = new Entity()
+    .bind(new Vector2(100, 100))
+    .bind(new Transform(0, 1,1))
+    .bind(new Graphic((vect, transform)=>{
+        ctx.fillRect(-25, -25, 50, 50);
+        ctx.fillRect(-15, 15, 80, 20);
+    }))
+    .bind({
+        update(self) {
+            self.graphic.draw();
+            self.vector.move_with_angle(5, controller.angle());
+            self.transform.rotation = get_angle(self.vector, mouse.pos);
+        }
+    });
+
+
 //#endregion
 
 //#region Canvas Events
