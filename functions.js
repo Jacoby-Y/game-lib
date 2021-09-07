@@ -1,3 +1,99 @@
+const graphics = {
+    circ(obj, pos={ x: 0, y: 0 }, scale={ w: 10, h: 10 }, angles={ start: 0, end: Math.PI*2, clockwise: true }, style={ fill: true, fillStyle: "red", stroke: true, strokeStyle: "black", strokeWidth: 1}) { // { x: 100, y: 100 }, { w: 20, h: 20 }, { fill: true, }
+        if (obj.vector == undefined || obj.transform == undefined) {
+            console.warn("Object must have a vector and transform to draw!");
+            return;
+        }
+
+        
+        if (angles.clockwise == undefined) angles.clockwise = true;
+        if (angles.start == undefined) angles.start = 0;
+        if (angles.end == undefined) angles.end = Math.PI*2;
+        
+
+        ctx.beginPath();
+        ctx.ellipse(
+            (pos.x), (pos.y), 
+            (obj.transform.scale_w + scale.w), (obj.transform.scale_h + scale.h), 
+            obj.transform.rotation, angles.start, angles.end, !angles.clockwise);
+        if (style.fill == true) {
+            if (style.fillStyle == undefined) style.fillStyle = "red";
+            ctx.fillStyle = style.fillStyle;
+            ctx.fill();
+        }
+        if (style.stroke == true) {
+            if (style.strokeStyle == undefined) style.strokeStyle = "black";
+            if (style.strokeWidth == undefined) style.strokeWidth = 1;
+            ctx.strokeStyle = style.strokeStyle;
+            ctx.lineWidth = style.strokeWidth;
+            ctx.stroke();
+        }
+    },
+    rect(obj, pos={ x: 0, y: 0 }, scale={ w: 10, h: 10 }, style={ fill: true, fillStyle: "red", stroke: true, strokeStyle: "black", strokeWidth: 1}) {
+        if (obj.vector == undefined || obj.transform == undefined) {
+            console.warn("Object must have a vector and transform to draw!");
+            return;
+        }
+
+        ctx.beginPath();
+        ctx.strokeRect(
+            (pos.x), (pos.y), 
+            (obj.transform.scale_w + scale.w), (obj.transform.scale_h + scale.h));
+        if (style.fill == true) {
+            if (style.fillStyle == undefined) style.fillStyle = "red";
+            ctx.fillStyle = style.fillStyle;
+            ctx.fill();
+        }
+        if (style.stroke == true) {
+            if (style.strokeStyle == undefined) style.strokeStyle = "black";
+            if (style.strokeWidth == undefined) style.strokeWidth = 1;
+            ctx.strokeStyle = style.strokeStyle;
+            ctx.lineWidth = style.strokeWidth;
+            ctx.stroke();
+        }
+    }
+}
+const draw = {
+    ellipse(x=0,y=0, w=10,h=10, rotation=0, angles={ start: 0, end: Math.PI*2, clockwise: true }, style={ fill: true, fillStyle: "red", stroke: true, strokeStyle: "black", strokeWidth: 1}) {
+        if (angles.clockwise == undefined) angles.clockwise = true;
+        if (angles.start == undefined) angles.start = 0;
+        if (angles.end == undefined) angles.end = Math.PI*2;
+        
+
+        ctx.beginPath();
+        ctx.ellipse(
+            (x), (y), 
+            (w), (h), 
+            rotation, angles.start, angles.end, !angles.clockwise);
+        if (style.fill == true) {
+            if (style.fillStyle == undefined) style.fillStyle = "red";
+            ctx.fillStyle = style.fillStyle;
+            ctx.fill();
+        }
+        if (style.stroke == true) {
+            if (style.strokeStyle == undefined) style.strokeStyle = "black";
+            if (style.strokeWidth == undefined) style.strokeWidth = 1;
+            ctx.strokeStyle = style.strokeStyle;
+            ctx.lineWidth = style.strokeWidth;
+            ctx.stroke();
+        }
+    },
+    rect(x=0,y=0, w=10,h=10, style={ fill: true, fillStyle: "red", stroke: true, strokeStyle: "black", strokeWidth: 1}) {
+        if (style.fill == true) {
+            if (style.fillStyle == undefined) style.fillStyle = "red";
+            ctx.fillStyle = style.fillStyle;
+            ctx.fillRect(x,y, w,h);
+        }
+        if (style.stroke == true) {
+            if (style.strokeStyle == undefined) style.strokeStyle = "black";
+            if (style.strokeWidth == undefined) style.strokeWidth = 1;
+            ctx.strokeStyle = style.strokeStyle;
+            ctx.lineWidth = style.strokeWidth;
+            ctx.strokeRect(x,y, w,h);
+        }
+    }
+}
+
 const draw_circ = (x, y, radius, color, fill=true)=>{
     if (fill) {
         ctx.beginPath();
@@ -50,16 +146,23 @@ const distance2 = (p1, p2)=>{
     const dy = p2.y-p1.y;
     return Math.sqrt(dx*dx + dy*dy);
 }
-const difference = (p1, p2)=>{
-    const dx = p2.x-p1.x;
-    const dy = p2.y-p1.y;
+const difference = (p1, p2, relative=false)=>{
+    let offset_x = 0;
+    let offset_y = 0;
+    if (relative) {
+        offset_x = camera.pos.x;
+        offset_y = camera.pos.y;
+    }
+    
+    const dx = (p2.x+offset_x)-(p1.x+offset_x);
+    const dy = (p2.y+offset_y)-(p1.y+offset_y);
     return {
         x: dx,
         y: dy
     }
 }
-const get_angle = (p1, p2)=>{
-    const d = difference(p1, p2);
+const get_angle = (p1, p2, relative=false)=>{
+    const d = difference(p1, p2, relative);
     return Math.atan2(d.y, d.x);
 }
 const run_shader = (func, divisor)=>{
@@ -68,12 +171,37 @@ const run_shader = (func, divisor)=>{
         for (let px = 0; px < canvas.width/divisor; px++) {
             const x = px * divisor;
             const y = py * divisor;
-            func(x,y, divisor, data);
+            const res = func(x,y, divisor, data);
+            if (res == "kill") return;
         }
     }
 }
-const random_range = (min, max)=>{
-    return Math.random() * (max - min) + min;
+const pixelate = (area)=>{
+    for (let py = 0; py < canvas.height/area; py++) {
+        for (let px = 0; px < canvas.width/area; px++) {
+            const x = px * area;
+            const y = py * area;
+
+            const p = ctx.getImageData(x, y, 1, 1).data; 
+            const color = {
+                r: p[0],
+                g: p[1],
+                b: p[2],
+                to_string(){
+                    return `rgb(${this.r}, ${this.g}, ${this.b})`;
+                }
+            }
+
+            ctx.fillStyle = color.to_string();
+            ctx.fillRect(x,y,area,area);
+        }
+    }
+    
+}
+const random_range = (min, max, round=false)=>{
+    const res = Math.random() * (max - min) + min;
+    if (round) return Math.round(res);
+    return res;
 }
 const draw_text = (x,y, text, font="30px arial", style="black", align="center")=>{
     if (font == null)
@@ -147,10 +275,34 @@ const get_entity_with_id = (id)=>{
     return null;
 }
 const update_entities = ()=>{
+    const new_entites = [];
     for (let i = 0; i < entities.length; i++) {
         const e = entities[i];
+
+        if (e._destroy == true) continue;
+
         if (typeof e.update == "function")
             e.update(e);
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        
+        new_entites.push(e);
+    }
+    entities = new_entites;
+}
+const draw_image = (src, x=0,y=0, width=undefined, height=undefined)=>{
+    const image = new Image();
+    image.src = src;
+    if (width == undefined || height == undefined) {
+        width = image.width;
+        height = image.height;
+    }
+    image.onload = ()=>{ctx.drawImage(image, x, y, width, height)}
+}
+const run_update_functions = ()=>{
+    for (let i = 0; i < update.length; i++) {
+        const f = update[i];
+        if (typeof f != "function") continue;
+        f();
     }
 }
 class Emitter {
@@ -217,7 +369,7 @@ class Emitter {
         for (let i = 0; i < this.parts.length; i++) {
             const part = this.parts[i];
             part.step();
-            if (part.ticks < this.life_span && !part.destroy)
+            if (part.ticks < this.life_span && !part._destroy)
                 new_parts.push(part);
             else {
                 part.on_destroy();
@@ -246,7 +398,7 @@ class Particle {
         this.vect = vect;
         this.drag = drag;
         this.ticks = 0;
-        this.destroy = false;
+        this._destroy = false;
         this.on_destroy = ()=>{};
     }
     step() {
@@ -264,18 +416,35 @@ class Particle {
         draw_circ2(this.pos, 10, ctx.fillStyle);
     }
 }
+class Job {
+    constructor(ticks, funcs=[], data={}) {
+        this.ticks = ticks;
+        this.funcs = funcs;
+        this.data = data;
+        event_manager.jobs.push(this);
+    }
+    run_job() {
+        for (let i = 0; i < this.funcs.length; i++) {
+            const func = this.funcs[i];
+            if (typeof func != "function") continue;
+            const res = func(this.data);
+            if (res == "kill")
+                break;
+        }
+    }
+}
 
 //> Components
 class Entity {
     constructor() {
+        this._destroy = false;
         entities.push(this);
     }
     bind(obj) {
         if (obj.$ != undefined && typeof obj.$ == "function") {
             const prop = obj.$();
             if (prop == "graphic") {
-                obj.vector = this.vector;
-                obj.transform = this.transform;
+                obj.bind = this;
             }
             this[prop] = obj;
         } else if (typeof obj == "object") {
@@ -283,6 +452,13 @@ class Entity {
         }
         
         return this;
+    }
+    destroy(time=0) {
+        if (time <= 0) {
+            this._destroy = true;
+        } else {
+            new Job(time, [(data)=>{ data.entity._destroy = true }], {entity: this})
+        }
     }
 }
 
@@ -294,34 +470,43 @@ class Vector2 {
     get_dir() {
         return Math.atan2(x,y);
     }
-    move_to(pos, step) {
+    move_to(pos={x:0, y:0}, step=5) {
         const angle = get_angle(this, pos);
-        this.x += Math.cos(angle)*step;
-        this.y += Math.sin(angle)*step;
+        const dist = distance2(this, pos);
+        if (dist <= step) {
+            this.x = pos.x;
+            this.y = pos.y;
+        } else {
+            this.x += Math.cos(angle)*step;
+            this.y += Math.sin(angle)*step;
+        }
+        return this;
     }
     move_with_angle(len, angle) {
         if (angle == null) return;
         this.x += Math.cos(angle)*len;
         this.y += Math.sin(angle)*len;
+        return this;
     }
     translate(x,y) {
         this.x += x;
         this.y += y;
+        return this;
     }
     $(){ return "vector" }
 }
 class Transform {
-    constructor(rotation, scale_x, scale_y) {
+    constructor(rotation, scale_w, scale_h) {
         this.rotation = rotation;
-        this.scale_x = scale_x;
-        this.scale_y = scale_y;
+        this.scale_w = scale_w;
+        this.scale_h = scale_h;
     }
     rotate(angle) {
         this.rotation += angle;
     }
     scale(x,y) {
-        this.scale_x += x;
-        this.scale_y += y;
+        this.scale_w += x;
+        this.scale_h += y;
     }
     $(){ return "transform" }
 }
@@ -352,16 +537,15 @@ class Physics {
     $(){ return "physics" }
 }
 class Graphic {
-    constructor(on_draw=(vect, transform)=>{}) {
-        this.vector = null;
-        this.transform = null;
+    constructor(on_draw=(self)=>{}) {
+        this.bind = {};
         this.on_draw = on_draw;
     }
     draw(){
-        if (this.vector == null || this.transform == null) return;
-        ctx.setTransform(1, 0, 0, 1, this.vector.x, this.vector.y);
-        ctx.rotate(this.transform.rotation);
-        this.on_draw(this.vector, this.transform);
+        if (this.bind.vector == null || this.bind.transform == null) return;
+        ctx.setTransform(1, 0, 0, 1, this.bind.vector.x + camera.pos.x, this.bind.vector.y + camera.pos.y);
+        ctx.rotate(this.bind.transform.rotation);
+        this.on_draw(this.bind);
     }
     $(){ return "graphic" }
 }
@@ -372,4 +556,9 @@ class BoxCollider {
         this.vector = null;
     }
     $() { return "box_collider"; }
+}
+class Skeleton {
+    constructor(origin, ) {
+        
+    }
 }

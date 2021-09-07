@@ -6,14 +6,16 @@ const canv_h = canvas.height;
 ctx.save();
 // ctx.restore();
 
-const size = window.innerHeight-4;
+const ratio = (window.innerHeight-4)/3;
 
-canvas.style.width = size + "px";
-canvas.style.height = size + "px";
-const scale = window.devicePixelRatio; 
-canvas.width = Math.floor(size * scale);
-canvas.height = Math.floor(size * scale);
-ctx.scale(scale, scale);
+canvas.style.width = ratio*4 + "px";
+canvas.style.height = ratio*3 + "px";
+canvas.width = Math.floor(ratio*4);
+canvas.height = Math.floor(ratio*3);
+ctx.scale(1+(1/3), 1);
+
+const cw = canvas.width;
+const ch = canvas.height;
 
 const mouse = {
     down: false,
@@ -21,6 +23,13 @@ const mouse = {
     pos: {
         x: 0,
         y: 0,
+    }
+}
+const camera = {
+    pos: {x: 0, y: 0},
+    translate(x,y) {
+        this.pos.x += x;
+        this.pos.y += y;
     }
 }
 const controller = {
@@ -43,6 +52,9 @@ const controller = {
         }
     }
 }
+const assets = {
+    example: "https://via.placeholder.com/350x150"
+}
 document.onmousemove = (e)=>{
     if (e.target == canvas) {
         mouse.pos.x = e.offsetX;
@@ -52,4 +64,23 @@ document.onmousemove = (e)=>{
         mouse.on_canvas = false;
     }
 }
-const entities = [];
+let entities = [];
+
+const event_manager = {
+    jobs: [],
+    step_jobs() {
+        const new_jobs = [];
+        for (let i = 0; i < this.jobs.length; i++) {
+            const job = this.jobs[i];
+            if (job.ticks <= 0) {
+                job.run_job();
+            } else {
+                job.ticks -= 1;
+                new_jobs.push(job);
+            }
+        }
+        this.jobs = new_jobs;
+    }
+}
+
+const update = [];

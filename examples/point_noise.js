@@ -3,24 +3,42 @@ const main_func = ()=>{
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.clearRect(0,0, canvas.width, canvas.height);
 
-    run_update_functions();
     update_entities();
     event_manager.step_jobs();
+    
+    run_shader((x,y, divisor, data)=>{
+        let closest = Infinity;
+        for (let i = 0; i < points.length; i++) {
+            const p = points[i];
+            const dist = distance(x,y, p.x, p.y);
+
+            if (dist < closest) {
+                closest = dist;
+            }
+        }
+        if (closest > 255) return;
+
+        const shade = Math.floor((closest/255)*255);
+
+        const color = `rgb(${shade}, ${shade}, ${shade})`;
+        draw.rect(x,y, divisor, divisor, {fill: true, fillStyle: color, stroke: false});
+    }, 10)
+
+    // pixelate(100);
 }
 //#endregion
 
-const player = new Entity()
-    .bind(new Vector2(canvas.width/2, canvas.height/2))
-    .bind(new Transform(0, 1,1))
-    .bind(new Graphic((self)=>{
-        ctx.fillRect(-25,-25, 50,50);
-    }))
-    .bind({
-        update(self) {
-            self.transform.rotation = get_angle(self.vector, mouse.pos);
-            self.graphic.draw(self);
-        }
-    })
+//#region Constants / Variables
+
+const points = [];
+for (let i = 0; i < 10; i++) {
+    points.push({
+        x: random_range(0, canvas.width, true),
+        y: random_range(0, canvas.height, true),
+    });
+}
+
+//#endregion
 
 //#region Canvas Events
 canvas.onmousedown = (e) => {
@@ -69,3 +87,4 @@ const main_loop = setInterval(() => {
         pause=true;
     }
 }, 1000/60);
+
